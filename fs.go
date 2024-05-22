@@ -1,3 +1,5 @@
+//go:build linux
+
 /*
 Copyright 2018 Google Inc.
 
@@ -21,14 +23,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/bradfitz/embiggen-disk/findmnt"
+	"github.com/skiffos/embiggen-disk/findmnt"
 	"golang.org/x/sys/unix"
 )
 
@@ -123,7 +124,7 @@ func statFS(mnt string) (fs fsStat, err error) {
 		return
 	}
 
-	mounts, err := ioutil.ReadFile("/proc/mounts")
+	mounts, err := os.ReadFile("/proc/mounts")
 	if err != nil {
 		return
 	}
@@ -194,16 +195,20 @@ func statFSFindmnt(mnt string) (fs fsStat, err error) {
 
 // findDevRoot finds which block device (e.g. "/dev/nvme0n1p1") patches the device number of /dev/root.
 func findDevRoot() (string, error) {
-	fis, err := ioutil.ReadDir("/dev")
+	fis, err := os.ReadDir("/dev")
 	if err != nil {
 		return "", err
 	}
 	dev := map[string]uint64{}
 	for _, fi := range fis {
-		if fi.Mode()&os.ModeDevice == 0 || fi.Mode()&os.ModeCharDevice != 0 {
+		fii, err := fi.Info()
+		if err != nil {
 			continue
 		}
-		dev[fi.Name()] = fi.Sys().(*syscall.Stat_t).Rdev
+		if fii.Mode()&os.ModeDevice == 0 || fii.Mode()&os.ModeCharDevice != 0 {
+			continue
+		}
+		dev[fi.Name()] = uint64(fii.Sys().(*syscall.Stat_t).Rdev)
 	}
 	wantDevnum, ok := dev["root"]
 	if !ok {

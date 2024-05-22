@@ -1,4 +1,4 @@
-module github.com/bradfitz/embiggen-disk
+module github.com/skiffos/embiggen-disk
 
 go 1.15
 

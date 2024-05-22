@@ -1,3 +1,5 @@
+//go:build linux
+
 /*
 Copyright 2018 Google Inc.
 
